@@ -62,13 +62,14 @@ async function fetchWithTimeout(
   url: string,
   init: RequestInit,
   timeoutMessage: string,
+  timeoutMs = 10_000,
 ): Promise<Response> {
   const controller = new AbortController()
   const externalSignal = init.signal
   const abortFromExternal = () => controller.abort()
   if (externalSignal?.aborted) controller.abort()
   else externalSignal?.addEventListener('abort', abortFromExternal, { once: true })
-  const timeout = window.setTimeout(() => controller.abort(), 10_000)
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     return await fetch(url, { ...init, signal: controller.signal })
@@ -113,13 +114,14 @@ function errorMessage(value: unknown): string | undefined {
   return typeof error === 'string' ? error : undefined
 }
 
-export async function checkHealth(signal?: AbortSignal): Promise<HealthResponse> {
+export async function checkHealth(signal?: AbortSignal, timeoutMs = 10_000): Promise<HealthResponse> {
   let response: Response
   try {
     response = await fetchWithTimeout(
       `${apiBaseUrl}/api/health`,
       { signal },
       'The backend health check timed out.',
+      timeoutMs,
     )
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') throw error
@@ -139,7 +141,11 @@ export async function checkHealth(signal?: AbortSignal): Promise<HealthResponse>
   ) {
     throw new ApiError('The API health response did not match the expected format.', response.status)
   }
-  return body as HealthResponse
+  const health = body as HealthResponse
+  if (health.status !== 'UP') {
+    throw new ApiError(`The backend is not ready yet: ${health.message}`, response.status)
+  }
+  return health
 }
 
 export async function evaluateRequest(request: EvaluateRequest): Promise<RateLimitDecision> {

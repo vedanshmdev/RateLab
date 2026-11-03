@@ -23,6 +23,14 @@ VITE_API_BASE_URL=https://api.example.test
 
 The browser will call `${VITE_API_BASE_URL}/api/...` directly in that case. The backend must allow the frontend origin through CORS; the frontend does not bypass or proxy around production CORS rules. This variable is public frontend configuration, so never put credentials or secrets in it.
 
+For the Vercel deployment, set `VITE_API_BASE_URL` as the variable name and `https://ratelab-backend.onrender.com` as its value, then create a new deployment so Vite embeds it in the production bundle. On Render, set `CORS_ALLOWED_ORIGINS` to `https://ratelab.vercel.app` and redeploy the backend. Add comma-separated origins if you also use a custom domain or Vercel preview domains. Do not include `/api` or a trailing slash in the Vercel API base URL.
+
+On opening, the app verifies `GET /api/health` before showing the playground. It retries failed checks with a 20-second per-check timeout and a five-second pause, for up to two minutes. If the backend is still unavailable, retry without reloading. After the first successful connection, the playground stays visible and checks backend health every 60 seconds; outages show a non-blocking warning.
+
+## Vercel Speed Insights
+
+The app includes Vercel Speed Insights for collecting real-user performance metrics after deployment. Enable Speed Insights for the Vercel project in its dashboard and redeploy if prompted. No additional environment variable is required. Metrics are collected from deployed visits; local development may log debug output but does not populate production analytics.
+
 ## What the playground shows
 
 - The five algorithms, with only their relevant configuration fields.

@@ -2377,3 +2377,335 @@ input:focus-visible {
     transform: scaleX(1);
   }
 }
+
+.connection-screen {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: 64px 1fr auto;
+  padding: 0 clamp(20px, 5vw, 72px) 24px;
+  background:
+    radial-gradient(ellipse at 50% 45%, rgb(230 243 235 / 65%), transparent 48%),
+    #f7f8f5;
+}
+
+.connection-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+
+.connection-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #64736c;
+  font-size: 11px;
+}
+
+.connection-state > i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d3a657;
+  box-shadow: 0 0 0 4px rgb(211 166 87 / 13%);
+  animation: connection-pulse 1.8s ease-in-out infinite;
+}
+
+.connection-state.waking > i {
+  background: #57977b;
+  box-shadow: 0 0 0 4px rgb(87 151 123 / 13%);
+}
+
+.connection-state.failed {
+  color: #a65340;
+}
+
+.connection-state.failed > i {
+  background: #c96f5a;
+  box-shadow: 0 0 0 4px rgb(201 111 90 / 13%);
+  animation: none;
+}
+
+.connection-card {
+  width: min(100%, 520px);
+  align-self: center;
+  justify-self: center;
+  padding: 42px clamp(22px, 6vw, 54px) 38px;
+  border: 1px solid #e4e9e3;
+  border-radius: 18px;
+  background: rgb(255 255 255 / 90%);
+  box-shadow: 0 18px 60px rgb(35 52 44 / 8%);
+  text-align: center;
+  animation: connection-appear 420ms ease-out both;
+}
+
+.connection-card h1 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: clamp(26px, 5vw, 34px);
+  font-weight: 550;
+  letter-spacing: -1px;
+}
+
+.connection-eyebrow {
+  margin: 6px 0 10px;
+  color: #789087;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1.2px;
+}
+
+.connection-description {
+  max-width: 380px;
+  margin: 12px auto 0;
+  color: #728078;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.server-illustration {
+  position: relative;
+  width: 124px;
+  height: 108px;
+  margin: 0 auto 21px;
+}
+
+.server-rack {
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  left: 34px;
+  width: 56px;
+  display: grid;
+  gap: 5px;
+  padding: 7px;
+  border: 1px solid #d5e2d9;
+  border-radius: 9px;
+  background: linear-gradient(145deg, #fff, #f1f7f2);
+  box-shadow: 0 9px 22px rgb(35 52 44 / 9%);
+}
+
+.server-rack > span {
+  height: 19px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 5px;
+  border: 1px solid #e0e9e1;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.server-rack > span > i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #56a47d;
+  animation: server-light 1.4s ease-in-out infinite alternate;
+}
+
+.server-rack > span:nth-child(2) > i { animation-delay: 250ms; }
+.server-rack > span:nth-child(3) > i { animation-delay: 500ms; }
+
+.server-rack > span > b {
+  width: 17px;
+  height: 2px;
+  margin-left: auto;
+  border-radius: 2px;
+  background: #d9e6dc;
+}
+
+.server-signal {
+  position: absolute;
+  top: 23px;
+  left: 26px;
+  width: 72px;
+  height: 54px;
+  border: 1px solid rgb(77 157 111 / 28%);
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  opacity: 0;
+  transform: rotate(45deg) scale(.8);
+  animation: server-signal 2.8s ease-out infinite;
+}
+
+.signal-two {
+  animation-delay: 1.35s;
+}
+
+.server-base {
+  position: absolute;
+  right: 25px;
+  bottom: 8px;
+  left: 25px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgb(50 83 63 / 11%);
+  filter: blur(2px);
+}
+
+.server-stopped .server-rack > span > i {
+  background: #c96f5a;
+  animation: none;
+}
+
+.server-stopped .server-signal {
+  display: none;
+}
+
+.indeterminate-progress {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  margin: 28px 0 0;
+  border-radius: 999px;
+  background: #e9eee9;
+}
+
+.indeterminate-progress > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -38%;
+  width: 38%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #68aa83, #287c64);
+  animation: connection-progress 1.65s ease-in-out infinite;
+}
+
+.connection-detail {
+  min-height: 18px;
+  margin: 12px 0 0;
+  color: #8a9690;
+  font-size: 10px;
+}
+
+.connection-error-detail {
+  margin: 16px 0 0;
+  color: #a65340;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.connection-retry {
+  min-height: 42px;
+  margin-top: 21px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 7px;
+  background: #287c64;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 140ms ease, transform 140ms ease;
+}
+
+.connection-retry:hover {
+  background: #206852;
+  transform: translateY(-1px);
+}
+
+.connection-retry:focus-visible {
+  outline: 3px solid rgb(40 124 100 / 30%);
+  outline-offset: 3px;
+}
+
+.connection-footer {
+  align-self: end;
+  margin: 0;
+  color: #a0aaa4;
+  font-size: 10px;
+  text-align: center;
+}
+
+.connection-warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px auto 0;
+  padding: 10px 12px;
+  border: 1px solid #efd6ce;
+  border-radius: 7px;
+  background: #fff7f4;
+  color: #9c4e3d;
+  font-size: 10px;
+}
+
+.connection-warning > span {
+  display: grid;
+  gap: 3px;
+}
+
+.connection-warning small {
+  color: #936f66;
+  font-size: 9px;
+}
+
+.connection-warning button {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border: 1px solid #e5c4ba;
+  border-radius: 5px;
+  background: #fff;
+  color: #994b3a;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@keyframes connection-progress {
+  0% { left: -38%; }
+  100% { left: 100%; }
+}
+
+@keyframes connection-pulse {
+  0%, 100% { opacity: .65; transform: scale(.9); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+@keyframes server-light {
+  from { opacity: .45; }
+  to { opacity: 1; }
+}
+
+@keyframes server-signal {
+  0% { opacity: 0; transform: rotate(45deg) scale(.72); }
+  28% { opacity: .75; }
+  100% { opacity: 0; transform: rotate(45deg) scale(1.25); }
+}
+
+@keyframes connection-appear {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 540px) {
+  .connection-screen {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .connection-card {
+    padding: 32px 22px 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .connection-state > i,
+  .server-rack > span > i,
+  .server-signal,
+  .indeterminate-progress > span,
+  .connection-card {
+    animation: none;
+  }
+
+  .indeterminate-progress > span {
+    left: 25%;
+    width: 50%;
+  }
+}

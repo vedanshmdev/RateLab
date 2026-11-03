@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ApiError,
-  checkHealth,
   evaluateRequest,
   type AlgorithmConfig,
   type AlgorithmType,
   type RateLimitDecision,
 } from './api'
 import { algorithms, defaultsFor, type AlgorithmDefinition } from './algorithms'
+import { useBackendConnection, type ConnectionStatus } from './useBackendConnection'
 import './App.css'
 
 type BackendStatus = 'checking' | 'available' | 'unavailable'
@@ -169,12 +169,84 @@ function createTimeTicks(spanSeconds: number): { position: number; label: string
   }))
 }
 
+function ConnectionScreen({
+  status,
+  elapsedMs,
+  error,
+  onRetry,
+}: {
+  status: ConnectionStatus
+  elapsedMs: number
+  error: string | null
+  onRetry: () => void
+}) {
+  const failed = status === 'failed'
+  const waking = status === 'waking' || elapsedMs >= 8_000
+  const longWait = elapsedMs >= 30_000
+
+  return (
+    <main className="connection-screen">
+      <header className="connection-topbar">
+        <a className="brand" href="#" aria-label="RateLab home">
+          <span className="brand-mark" aria-hidden="true"><i /><i /><i /></span>
+          <span>RateLab</span>
+        </a>
+        <span className={`connection-state ${failed ? 'failed' : waking ? 'waking' : 'connecting'}`} role="status" aria-live="polite">
+          <i />
+          {failed ? 'Connection failed' : waking ? 'Waking up' : 'Connecting'}
+        </span>
+      </header>
+
+      <section className={`connection-card ${failed ? 'connection-card-failed' : ''}`} aria-labelledby="connection-title">
+        <div className={`server-illustration ${failed ? 'server-stopped' : ''}`} aria-hidden="true">
+          <div className="server-rack">
+            <span><i /><i /><b /></span>
+            <span><i /><i /><b /></span>
+            <span><i /><i /><b /></span>
+          </div>
+          <div className="server-signal signal-one" />
+          <div className="server-signal signal-two" />
+          <div className="server-base" />
+        </div>
+
+        <p className="connection-eyebrow">BACKEND CONNECTION</p>
+        <h1 id="connection-title">Waking up the engine</h1>
+        <p className="connection-description">
+          {failed
+            ? 'The backend did not respond in time. You can retry without reloading the page.'
+            : longWait
+              ? 'The backend is taking longer than usual. Render may need 30–60 seconds to wake after inactivity; we’ll keep checking.'
+              : 'The backend may be asleep after a period of inactivity. We’re checking its health and will open the playground as soon as it responds.'}
+        </p>
+
+        {!failed ? (
+          <>
+            <div className="indeterminate-progress" role="progressbar" aria-label="Waiting for backend connection">
+              <span />
+            </div>
+            <p className="connection-detail">
+              {error
+                ? 'The last check did not connect. Retrying automatically.'
+                : 'This can take a little while on the first request.'}
+            </p>
+          </>
+        ) : (
+          <>
+            {error && <p className="connection-error-detail">{error}</p>}
+            <button className="connection-retry" type="button" onClick={onRetry}>Retry connection</button>
+          </>
+        )}
+      </section>
+      <p className="connection-footer">RateLab · Five algorithms, one request at a time</p>
+    </main>
+  )
+}
+
 function App() {
+  const connection = useBackendConnection()
   const [selectedId, setSelectedId] = useState(algorithms[0].id)
   const [values, setValues] = useState<Record<string, string>>(() => defaultsFor(algorithms[0]))
   const [attempts, setAttempts] = useState<Attempt[]>([])
-  const [backendStatus, setBackendStatus] = useState<BackendStatus>('checking')
-  const [healthCheckVersion, setHealthCheckVersion] = useState(0)
   const [busy, setBusy] = useState(false)
   const [pendingRequestNumber, setPendingRequestNumber] = useState<number | null>(null)
   const [notice, setNotice] = useState<RequestNotice | null>(null)
@@ -183,6 +255,11 @@ function App() {
   const [bucketSnapshots, setBucketSnapshots] = useState<Partial<Record<AlgorithmType, BucketSnapshot>>>({})
   const [animationTime, setAnimationTime] = useState(0)
   const nextRequestNumber = useRef(1)
+  const backendStatus: BackendStatus = connection.status === 'connected'
+    ? 'available'
+    : connection.status === 'unavailable' || connection.status === 'failed'
+      ? 'unavailable'
+      : 'checking'
 
   const selected = algorithms.find((item) => item.id === selectedId) ?? algorithms[0]
   const clientId = clientIds[selected.id]
@@ -288,19 +365,6 @@ function App() {
   const isWindowAlgorithm = selected.id === 'FIXED_WINDOW_COUNTER'
     || selected.id === 'SLIDING_WINDOW_LOG'
     || selected.id === 'SLIDING_WINDOW_COUNTER'
-
-  useEffect(() => {
-    const controller = new AbortController()
-    void checkHealth(controller.signal)
-      .then((response) => {
-        setBackendStatus(response.status === 'UP' ? 'available' : 'unavailable')
-      })
-      .catch((reason: unknown) => {
-        if (reason instanceof Error && reason.name === 'AbortError') return
-        setBackendStatus('unavailable')
-      })
-    return () => controller.abort()
-  }, [healthCheckVersion])
 
   useEffect(() => {
     if (!notice) return
@@ -544,6 +608,17 @@ function App() {
       setBusy(false)
       setPendingRequestNumber(null)
     }
+  }
+
+  if (!connection.hasConnected) {
+    return (
+      <ConnectionScreen
+        status={connection.status}
+        elapsedMs={connection.elapsedMs}
+        error={connection.error}
+        onRetry={connection.retry}
+      />
+    )
   }
 
   return (
@@ -1085,16 +1160,13 @@ function App() {
         </section>
 
         {backendStatus === 'unavailable' && (
-          <button
-            className="retry-health"
-            type="button"
-            onClick={() => {
-              setBackendStatus('checking')
-              setHealthCheckVersion((version) => version + 1)
-            }}
-          >
-            Backend offline · Check again
-          </button>
+          <div className="connection-warning" role="status">
+            <span>
+              <strong>Backend connection lost.</strong>
+              {connection.error && <small>{connection.error}</small>}
+            </span>
+            <button type="button" onClick={connection.retry}>Check again</button>
+          </div>
         )}
       </section>
     </main>
